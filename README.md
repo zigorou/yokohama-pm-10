@@ -91,7 +91,7 @@ my $instance = {
 
 ### プリミティブ型について
 
-(3.5. JSON Schema primitive types)[http://tools.ietf.org/html/draft-zyp-json-schema-04#section-3.5]にある通りなんですが、
+[3.5. JSON Schema primitive types](http://tools.ietf.org/html/draft-zyp-json-schema-04#section-3.5)にある通りなんですが、
 JSON Schema内で取り扱うプリミティブな型には以下のデータ型があります。
 
 * array
@@ -101,6 +101,8 @@ JSON Schema内で取り扱うプリミティブな型には以下のデータ型
 * null
 * object
 * string
+
+JSON Schemaを使ってスキーマを記述する際にはこれらのプリミティブ型をベースにして様々な制約(keywordと言います)をつけて行く事によってデータ型を表現して行く事になります。
 
 Perlのデータ型と比較すると次のような感じでしょうか。
 
@@ -115,3 +117,10 @@ Perlのデータ型と比較すると次のような感じでしょうか。
 | string | SCALAR (SV) |
 
 booleanとか忘れて下さい＞＜
+
+Perlで取り扱う際にはJSVでは二通りのケースを考えておりまして、
+
+* JSON由来のデータに対して厳密に評価するモード(default)
+* LLっぽぃゆるふわなデータに対してゆるふわに評価するモード (loose_typeオプション)
+
+の二つをご用意しております。loose_typeオプションが捗る話は後で書く。
