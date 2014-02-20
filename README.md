@@ -166,7 +166,20 @@ JSON Schemaのスキーマは[github上にあるdraft-04のcoreファイル](htt
 
 #### JSON-RPC 2.0 Request の例
 
-また、例えば[JSON-RPC 2.0](http://www.jsonrpc.org/specification)の[Request形式](http://www.jsonrpc.org/specification#request_object)をもしSchemaにするんだとするとこんな感じになります。
+また、例えば[JSON-RPC 2.0](http://www.jsonrpc.org/specification)の[Request形式](http://www.jsonrpc.org/specification#request_object)を題材にしてみます。
+
+```
+POST /jsonrpc HTTP/1.1
+Content-Type: application/json
+
+{
+  "jsonrpc": "2.0",
+  "method": "system.listMethods",
+  "id": "tehepero"
+}
+```
+
+みたいな奴です。
 
 書いてある事をざっくり日本語にすると以下のようになります。
 
@@ -212,3 +225,197 @@ JSON Schemaのスキーマは[github上にあるdraft-04のcoreファイル](htt
 ```
 
 大体こんな感じになります。
+慣れてくると大概のデータ表現に対して必要十分なスキーマを書けるようになります。
+
+## Extending JSON Schema
+
+ここまでは凄い簡単な例でしたが、より高度なスキーマを書きたい！ってなった時に避けて通れない概念があります。
+
+ * [JSON Pointer (RFC 6901)](http://tools.ietf.org/html/rfc6901)
+ * [JSON Reference](http://tools.ietf.org/html/draft-pbryan-zyp-json-ref-03)
+ * [allOf](http://tools.ietf.org/html/draft-fge-json-schema-validation-00#section-5.5.3), [anyOf](http://tools.ietf.org/html/draft-fge-json-schema-validation-00#section-5.5.4), [oneOf](http://tools.ietf.org/html/draft-fge-json-schema-validation-00#section-5.5.5), [not](http://tools.ietf.org/html/draft-fge-json-schema-validation-00#section-5.5.6)keyword
+
+### JSON Pointer
+
+Mojoliciousユーザーはもしかしたらご存知かもしれませんが、JSONドキュメント中の任意の値を指し示す為のポインタ表現です。RFC 6901として仕様化されています。
+Perl実装はMojolicious内にもありますが、[JSON::Pointer](https://metacpan.org/pod/JSON::Pointer)モジュールがシンプルで便利です（ぉ
+
+SYNOPSISコピペしておきますね！
+
+```perl
+use JSON::Pointer;
+ 
+my $obj = {
+  foo => 1,
+  bar => [ { qux => "hello" }, 3 ],
+  baz => { boo => [ 1, 3, 5, 7 ] }
+};
+ 
+JSON::Pointer->get($obj, "/foo");       ### $obj->{foo}
+JSON::Pointer->get($obj, "/bar/0");     ### $obj->{bar}[0]
+JSON::Pointer->get($obj, "/bar/0/qux"); ### $obj->{bar}[0]{qux}
+JSON::Pointer->get($obj, "/bar/1");     ### $obj->{bar}[1]
+JSON::Pointer->get($obj, "/baz/boo/2"); ### $obj->{baz}{boo}[2]
+```
+
+### JSON Reference
+
+[JSON Reference](http://tools.ietf.org/html/draft-pbryan-zyp-json-ref-03)とは、こんな奴です。
+
+```javascript
+{ "$ref": "http://example.com/example.json#/foo/bar" }
+```
+
+これはどういう意味かと言うと、次のように解釈して下さい。
+
+* http://example.com/example.json にある JSON 文書の
+* /foo/bar で示される JSON object で
+* $ref がある Object の中身を丸っと置き換える
+
+example.json の中身が以下のようになってるとしましょう。
+
+```javascript
+{
+  "foo": {
+    "bar": {
+      "type": "array",
+      "items": { "enum": ["begin", "commit", "rollback"] },
+      "uniqueItems": true,
+      "minItems": 1
+    }
+  }
+}
+```
+
+この時、先ほどの $ref を用いた JSON は次のようにresolutionされます。
+
+```javascript
+{
+  "type": "array",
+  "items": { "enum": ["begin", "commit", "rollback"] },
+  "uniqueItems": true,
+  "minItems": 1
+}
+```
+
+JSON Referenceは(絶対及び相対)URIとfragmentで示されるJSON Pointerによって、外部のJSONをinclude出来る概念です。
+ちなみにURIを省略する場合は文書内を指し示します。良くある例としては、
+
+```javascript
+{
+  "definitions": {
+    "Person": { "$ref": "http://example.com/person.json" },
+    "PersonCollection": {
+      "type": "array",
+      "items": { "$ref": "#/definitions/Person" }
+    }
+  }
+}
+```
+
+みたいな使い方をします。
+
+### allOf, anyOf, oneOf, not キーワード
+
+ちょっと前にoneOfキーワードが出てきましたが、前に作ってみたJSON-RPC 2.0 Requestのスキーマを「再利用」して現実的なJSON-RPC 2.0のメソッドに対してバリデーションを行うようなスキーマを書いてみます。
+しばしばJSON-RPC 2.0にも[XML-RPC Introspecction](http://xmlrpc-c.sourceforge.net/introspection.html)で定義されるメソッド群が実装される事がありますが、そのうちsystem.methodHelpについて表現してみましょう。このメソッドを指定したRPCメソッド名に対してヘルプメッセージを返すAPIです。
+
+仮に先ほどのJSON-RPC 2.0 Requestのスキーマが http://example.com/jsonrpc/request.json で定義されているとします。
+新たに付け加えるべきvalidationルールとしては以下になります。
+
+* method名はsystem.methodHelpであること
+* 引数はarray形式で1つのみ受け取り、それはメソッド名である事
+
+です。リクエストのサンプルとしては例えば次のようになります。
+
+```
+POST /jsonrpc HTTP/1.1
+Content-Type: application/json
+
+{
+  "jsonrpc": "2.0",
+  "method": "system.methodHelp",
+  "params": ["system.listMethods"],
+  "id": "hidek"
+}
+```
+
+さて、実際に書き起こしてみましょう。
+
+```javascript
+{
+  "id": "http://example.com/jsonrpc/methods/system.listMethods.json",
+  "title": "system.listMethods request schema",
+  "allOf": [
+    { "$ref": "http://example.com/jsonrpc/request.json" },
+    {
+      "properties": {
+        "method": { "enum": ["system.listMethods"] },
+        "params": { 
+          "type": "array",
+          "items": [
+            { "$ref": "http://example.com/jsonrpc/request.json#/properties/method" }
+          ],
+          "minItems": 1,
+          "additionalItems": false
+        }
+      },
+      "required": ["method", "params"]
+    }
+  ]
+}
+```
+
+理解出来ますかね？あるいは次のようにも書く事が出来ると思います。
+
+```javascript
+{
+  "id": "http://example.com/jsonrpc/methods/system.listMethods.json",
+  "title": "system.listMethods request schema",
+  "oneOf": [
+    { "$ref": "http://example.com/jsonrpc/request.json" }
+  ]
+  "properties": {
+    "method": { "enum": ["system.listMethods"] },
+    "params": { 
+      "type": "array",
+      "items": [
+        { "$ref": "http://example.com/jsonrpc/request.json#/properties/method" }
+      ],
+      "minItems": 1,
+      "additionalItems": false
+    }
+  },
+  "required": ["method", "params"]
+}
+```
+
+allOf, anyOf, oneOf, not は次のようなkeywordです。
+
+* allOf
+  * 指定された複数のスキーマ全てに対してvalidであればvalid
+* anyOf
+  * 指定された複数のスキーマのうち少なくとも1つvalidであればvalid
+* oneOf
+  * 指定された複数のスキーマのうち1個のみvalidであればvalid
+* not
+  * 指定されたスキーマに対してinvalidであればvalid
+
+これらの概念を駆使するとSchemaの再利用と拡張を書く事が出来ます。ここまで使いこなせればJSON Schema免許皆伝です。
+
+## JSVモジュールの説明
+
+仕様の説明はきりがないので肝心のモジュールについて説明しますよ。主要なモジュールは以下になります。
+
+* JSV::Validator
+  * validationを行うにはこのモジュールのインスタンスが必要
+* JSV::Reference
+  * スキーマデータの格納庫。再利用する際に間接的にお世話になる
+* JSV::Context
+  * validation中の状態管理用。内部でしか使ってないけど凄い重要な人
+* JSV::Result
+  * validation結果です。どこでエラーになったよとかの情報を持ってる。リリース出来てない理由の一つはResultをもっと便利にしたいのだがまだ実装出来てないのでした。
+
+## まとめ
+
+眠い。。。
