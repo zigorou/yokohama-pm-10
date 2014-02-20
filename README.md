@@ -6,7 +6,7 @@
 
 最初、Keynoteで書き始めたけど体裁気にして書くのが面倒なのでMarkdownにて失敬！
 
-## Introduction JSON Schema
+## Introduction
 
 [json-schema.org](http://json-schema.org/)が公式です。
 現在はdraft-04まで出ています。
@@ -72,3 +72,46 @@ my $instance = {
 
 良くありますよね？そこで[JSV](https://github.com/zigorou/perl-JSV)モジュールの登場です。
 サンプルコードとして[hello_jsv.pl](./hello_jsv.pl)を見て下さい。
+
+動かせばすぐ分かりますよね。JSON SchemaはPerlで表現されたデータ構造に対してもValidationを行う事が出来ます。
+細かい話は抜きにして、
+
+* データ型を定義するだけでなく、データの検証に使える
+
+という特徴を持っているのが分かると思います。
+
+## JSON Schema tutorial
+
+さて、全部を説明するのには時間も元気もあまりに足りないので要点だけ駆け足にて説明しますよ。
+
+* (JSON Schema Core draft-04)[http://tools.ietf.org/html/draft-zyp-json-schema-04]
+* (JSON Schema Validator draft-00)[http://tools.ietf.org/html/draft-fge-json-schema-validation-00]
+
+についてです。
+
+### プリミティブ型について
+
+(3.5. JSON Schema primitive types)[http://tools.ietf.org/html/draft-zyp-json-schema-04#section-3.5]にある通りなんですが、
+JSON Schema内で取り扱うプリミティブな型には以下のデータ型があります。
+
+* array
+* boolean
+* integer
+* number
+* null
+* object
+* string
+
+Perlのデータ型と比較すると次のような感じでしょうか。
+
+| JSON Schema primitive type | Perl Data type |
+|:--------------------------:|:---------------|
+| array | ARRAYREF |
+| boolean | Perlにbooleanとかねーよ！！！ |
+| integer | SCALAR (IV) |
+| number | SCALAR (NV) |
+| null | undef |
+| object | HASHREF |
+| string | SCALAR (SV) |
+
+booleanとか忘れて下さい＞＜
