@@ -5,6 +5,7 @@
 * 2014/02/21
 
 最初、Keynoteで書き始めたけど体裁気にして書くのが面倒なのでMarkdownにて失敬！
+今日話すのは[JSON Schema](http://json-schema.org/)という仕様の話と、[JSV](https://github.com/zigorou/perl-JSV)モジュールについてです。
 
 ## Introduction
 
@@ -124,3 +125,32 @@ Perlで取り扱う際にはJSVでは二通りのケースを考えておりま�
 * LLっぽぃゆるふわなデータに対してゆるふわに評価するモード (loose_typeオプション)
 
 の二つをご用意しております。loose_typeオプションが捗る話は後で書く。
+
+## 最小構成のスキーマとJSON Schemaのスキーマの話
+
+見出し、何言ってるか分からないかもしれませんが、要はself-desriptiveですよって話です。
+つまりJSON Schemaを使ってスキーマデータのsyntaxを定義出来ちゃうって意味です。
+
+JSON Schemaのスキーマは[github上にあるdraft-04のcoreファイル](https://github.com/json-schema/json-schema/blob/master/draft-04/schema)が読みやすくて便利です。
+このcoreスキーマを解説していきたい所ではあるのですが、結論から先に言ってしまうと最小構成のスキーマは以下になります。
+
+```javascript
+{}
+```
+
+お前は何を言っているんだと思うかもしれませんが本当です。少しだけ解説すると、
+
+* typeキーワードがobject([L28](https://github.com/json-schema/json-schema/blob/master/draft-04/schema#L28))なのでスキーマはobject型でなければなりません
+* このobjectの持ちうるプロパティはpropertiesキーワード内([L29](https://github.com/json-schema/json-schema/blob/master/draft-04/schema#L29))で定義されています
+  * ちなみにここで定義されているフィールド名の部分がJSON Schemaを用いて書いたスキーマ内で使えるkeyword郡です
+* これは傍証ですがdefaultにempty objectが指定されている([L149](https://github.com/json-schema/json-schema/blob/master/draft-04/schema#L149))ので、空のobjectが最小構成のスキーマになります
+  * 真面目に言えばpropertiesキーワード内での指定だけでは、そのようなフィールドが登場した場合の値に対する定義をしただけで、そのようなフィールドが存在しなくてはならない訳ではないです
+  * もう少し突っ込んで言えばrequiredキーワードを用いて指定されたフィールド名があれば、そのフィールドが登場しないとvalidではないと言う意味になります
+
+うん、あまり深く考えなくて良いです。
+
+ここでdefaultキーワードに対して少し言及しておきます。これはJSON Schema仕様では[metadata keywordとして分類](http://tools.ietf.org/html/draft-fge-json-schema-validation-00#section-6.2)されています。ざっくり言うと「補足情報」でありvalidation上は意味を成さないという意味です。
+
+で、この最小構成のスキーマはどういう意味かと言うと、いかなるデータもvalidであるという意味になります。まぁ、考えてみれば自然ですね。
+
+
