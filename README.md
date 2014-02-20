@@ -126,7 +126,7 @@ Perlで取り扱う際にはJSVでは二通りのケースを考えておりま�
 
 の二つをご用意しております。loose_typeオプションが捗る話は後で書く。
 
-## 最小構成のスキーマとJSON Schemaのスキーマの話
+### 最小構成のスキーマとJSON Schemaのスキーマの話
 
 見出し、何言ってるか分からないかもしれませんが、要はself-desriptiveですよって話です。
 つまりJSON Schemaを使ってスキーマデータのsyntaxを定義出来ちゃうって意味です。
@@ -138,7 +138,10 @@ JSON Schemaのスキーマは[github上にあるdraft-04のcoreファイル](htt
 {}
 ```
 
-お前は何を言っているんだと思うかもしれませんが本当です。少しだけ解説すると、
+お前は何を言っているんだと思うかもしれませんが本当です。
+で、この最小構成のスキーマはどういう意味かと言うと、いかなるデータもvalidであるという意味になります。まぁ、考えてみれば自然ですね。
+
+以下、うんちくです。後で各自目を通す事。
 
 * typeキーワードがobject([L28](https://github.com/json-schema/json-schema/blob/master/draft-04/schema#L28))なのでスキーマはobject型でなければなりません
 * このobjectの持ちうるプロパティはpropertiesキーワード内([L29](https://github.com/json-schema/json-schema/blob/master/draft-04/schema#L29))で定義されています
@@ -147,10 +150,65 @@ JSON Schemaのスキーマは[github上にあるdraft-04のcoreファイル](htt
   * 真面目に言えばpropertiesキーワード内での指定だけでは、そのようなフィールドが登場した場合の値に対する定義をしただけで、そのようなフィールドが存在しなくてはならない訳ではないです
   * もう少し突っ込んで言えばrequiredキーワードを用いて指定されたフィールド名があれば、そのフィールドが登場しないとvalidではないと言う意味になります
 
-うん、あまり深く考えなくて良いです。
-
 ここでdefaultキーワードに対して少し言及しておきます。これはJSON Schema仕様では[metadata keywordとして分類](http://tools.ietf.org/html/draft-fge-json-schema-validation-00#section-6.2)されています。ざっくり言うと「補足情報」でありvalidation上は意味を成さないという意味です。
 
-で、この最小構成のスキーマはどういう意味かと言うと、いかなるデータもvalidであるという意味になります。まぁ、考えてみれば自然ですね。
+うん、あまり深く考えなくて良いです！
 
+### Schemaの例
 
+基本的には公式の[examples](http://json-schema.org/examples.html)を斜め読みすれば必要そうな概念は十分に理解出来ます。
+それを読み終えたら[JSON Schema Test Suite](https://github.com/json-schema/JSON-Schema-Test-Suite)を見ると、各keywordがどういう意味なのか理解出来ると思います。
+ちなみにJSVモジュールは現時点でTest Suiteは全て通ってる感じです。
+
+#### Test Suite 解説
+
+[multipleOfキーワードのTest Suite](https://github.com/json-schema/JSON-Schema-Test-Suite/blob/develop/tests/draft4/multipleOf.json)を例にちょっとだけ解説してみます。
+
+#### JSON-RPC 2.0 Request の例
+
+また、例えば[JSON-RPC 2.0](http://www.jsonrpc.org/specification)の[Request形式](http://www.jsonrpc.org/specification#request_object)をもしSchemaにするんだとするとこんな感じになります。
+
+書いてある事をざっくり日本語にすると以下のようになります。
+
+| field | description |
+|:-----:|:------------|
+| jsonrpc | JSON-RPCプロトコルバージョンを表す文字列で"2.0"でなければならない |
+| method | 呼び出したいメソッド名を表す文字列。"rpc."から始まる奴は予約メソッド。 |
+| params | 構造化データ(array または object)。省略可能。 |
+| id | nullまたは文字列、数値 |
+
+この仕様の文章だけ読むと曖昧さが残るのですが、強いてスキーマにすると次のような感じです。
+
+```javascript
+{
+  "title": "JSON-RPC 2.0 Request Object Schema",
+  "type": "object",
+  "properties": {
+    "jsonrpc": {
+      "enum": ["2.0"]
+    },
+    "method": {
+      "type": "string",
+      "minLength": 1
+    },
+    "params": {
+      "oneOf": [
+        { "type": "array" },
+        { "type": "object" }
+      ],
+      "default": []
+    },
+    "id": {
+      "oneOf": [
+        { "type": "null" },
+        { "type": "string" },
+        { "type": "number" }
+      ],
+      "default": null
+    }
+  },
+  "required": ["jsonrpc", "method"]
+}
+```
+
+大体こんな感じになります。
