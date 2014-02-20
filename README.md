@@ -59,3 +59,16 @@ JSON(JavaScript Object Notation)について今更説明は不要だと思いま
 * 簡単で人間にも(それなりに)分かりやすく、もちろん machine readable でもある「仕様ドキュメント」になりえます
 
 と言った特徴を挙げる事が出来ます。
+
+で、今日はYokohama.pmな訳なのでPerlに関係ある話をしようじゃないかと言う訳で、例えばPerlのデータとして以下のような物があったとしましょう。
+
+```perl
+my $instance = {
+  id       => 501566911, 
+  name     => "Toru Yamaguchi", 
+  birthday => "1976-12-24",
+};
+```
+
+良くありますよね？そこで[JSV](https://github.com/zigorou/perl-JSV)モジュールの登場です。
+サンプルコードとして[hello_jsv.pl](./hello_jsv.pl)を見て下さい。
