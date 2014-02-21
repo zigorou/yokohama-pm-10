@@ -416,6 +416,63 @@ allOf, anyOf, oneOf, not は次のようなkeywordです。
 * JSV::Result
   * validation結果です。どこでエラーになったよとかの情報を持ってる。リリース出来てない理由の一つはResultをもっと便利にしたいのだがまだ実装出来てないのでした。
 
+### スキーマファイルの管理とJSV::Reference
+
+スキーマ自体は適当にディレクトリ上に json ファイルとして配備してあげると良いと思います。
+例えば $WEBAPP_HOME/schema 以下に全てのファイルを展開し、jsonファイルに記述されているスキーマのidキーワードに、
+スキーマを識別するURIが記載されている仮定で、次のようなコードを書きます。
+
+```perl
+#!/usr/bin/env perl
+
+use strict;
+use warnings;
+use feature qw(say);
+
+use File::Find qw(finddepth);
+use File::Slurp qw(slurp);
+use JSON;
+use JSV::Validator;
+
+sub init {
+    my $base_dir = shift;
+
+    my $validator = JSV::Validator->new;
+
+    finddepth(+{
+        wanted => sub {
+            my $entry = $_;
+            return unless (-f $entry && $entry =~ m/\.json$/);
+
+            my $schema;
+            eval {
+                my $json = slurp($entry);
+                $schema = decode_json($json);
+            };
+            if (my $e = $@) {
+                return;
+            }
+
+            my $id = $schema->{id};
+
+            $validator->register_schema($id => $schema);
+        },
+        bydepth => 1,
+        no_chdir => 1,
+    }, $base_dir);
+
+    return $validator;
+}
+
+init("./schema");
+```
+
+こんなノリでおいてあるjsonファイルを全てJSON::Referenceに登録しておくと、$refで全て読み出す事が出来ます。
+
+### JSON Hyper Schema
+
+
+
 ## まとめ
 
 眠い。。。
