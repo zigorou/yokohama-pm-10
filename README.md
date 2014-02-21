@@ -469,10 +469,6 @@ init("./schema");
 
 こんなノリでおいてあるjsonファイルを全てJSON::Referenceに登録しておくと、$refで全て読み出す事が出来ます。
 
-### JSON Hyper Schema
-
-
-
 ## まとめ
 
-眠い。。。
+続きは懇親会でね。
